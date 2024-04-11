@@ -5,8 +5,6 @@
         <!-- New report layout for din5008 format -->
         <template id="external_layout_custom">
 
-            <div class="">
-
                 <!-- Header -->
                 <div t-attf-class="header custom_page container o_company_#{company.id}_layout #{'custom_page_pdf' if report_type == 'pdf' else ''}">
                     <div class="row company_header">
@@ -31,13 +29,13 @@
                         t-att-data-oe-id="o and o.id"
                         t-att-data-oe-lang="o and o.env.context.get('lang')"
                 >
-                    <div class="row">
-                        <div class="col" name="company_address">
-                            <div class="company_address">
-                                <span t-if="company.company_details" t-field="company.company_details"></span>
-                            </div>
-                        </div>
-                    </div>
+<!--                    <div class="row">-->
+<!--                        <div class="col" name="company_address">-->
+<!--                            <div class="company_address">-->
+<!--                                <span t-if="company.company_details" t-field="company.company_details"></span>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
                     <div class="row">
                         <!-- Invoice Address -->
                         <div class="col-5">
@@ -96,9 +94,17 @@
                             <span t-elif="'name' in o" t-field="o.name"/>
                         </span>
                     </h2>
+                    <div> <span>Mantelbogen zu Ihrer Rechnung</span></div>
+                    <div t-if="o.billing_period_start and o.billing_period_end" >
+                        <span>Für die Rechnungsperiode von</span>
+                        <span t-field="o.billing_period_start" t-options='{"widget": "date","format": "dd.MM.yyyy"}'/> 00:01 Uhr
+                        bis
+                        <span t-field="o.billing_period_end" t-options='{"widget": "date","format": "dd.MM.yyyy"}'/> 23:59 Uhr.
+                    </div>
+
 
                     <!-- Document Content -->
-                    <div class="row">
+                    <div class="row" t-if="o and 'invoice_line_ids' in o"  >
                         <div class="col">
                             <div class="mt-5 clearfix">
                                 <div class="page mb-4">
@@ -386,7 +392,6 @@
 
                 </div>
 
-            </div>
 
         </template>
 

@@ -7,6 +7,7 @@
     'depends': ['l10n_din5008'],
     'data': [
         'views/report_templates.xml',
+        'views/invoice_template.xml',
         'data/report_layout.xml',
     ],
     'assets': {
