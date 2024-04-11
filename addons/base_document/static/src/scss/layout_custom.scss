@@ -10,7 +10,7 @@
   &.header {
 
     img, h3 {
-      padding: 1rem 0  0 0;
+      padding: 1rem 0 0 0;
       margin: 0;
     }
 
@@ -25,7 +25,7 @@
   }
 
   &.invoice_note {
-    margin-top: 1rem;
+    //margin-top: 1rem;
 
     div {
       .company_address {
@@ -64,7 +64,7 @@
     }
 
     h2, [name=payment_communication], [name=payment_term], [name=comment], [name=note], [name=incoterm] {
-      margin-right: 10mm;
+      //margin-right: 10mm;
       color: $o-default-report-primary-color;
     }
 
@@ -83,16 +83,20 @@
         }
       }
 
+      [name=invoice_line_table], [name=stock_move_table] {
+        margin-top: 8.46mm;
+      }
+
       tr {
-        td {
-          vertical-align: bottom;
+        td .custom_td {
+          width: 12px;
         }
       }
     }
   }
 }
 
-.classic_page_pdf {
-  margin-left: -1rem;
-  font-size: 8pt;
-}
+//.classic_page_pdf {
+//  margin-left: -1rem;
+//  font-size: 8pt;
+//}

@@ -10,11 +10,11 @@
         'views/invoice_template.xml',
         'data/report_layout.xml',
     ],
-    'assets': {
-        'web.report_assets_common': [
-            'base_document/static/src/**/*',
-        ],
-    },
+    # 'assets': {
+    #     'web.report_assets_common': [
+    #         'base_document/static/src/**/*',
+    #     ],
+    # },
     'installable': True,
     'application': False,
     'license': 'AGPL-3',
