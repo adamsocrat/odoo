@@ -7,8 +7,8 @@
             <field name="inherit_id" ref="account.view_move_form"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='invoice_date']" position="after">
-                    <field name="billing_period_start"/>
-                    <field name="billing_period_end"/>
+                    <field name="billing_period_start" readonly="state != 'draft'"/>
+                    <field name="billing_period_end" readonly="state != 'draft'"/>
                 </xpath>
             </field>
         </record>
@@ -20,8 +20,8 @@
             <field name="inherit_id" ref="account.view_move_tree"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='invoice_date']" position="after">
-                    <field name="billing_period_start"/>
-                    <field name="billing_period_end"/>
+                    <field name="billing_period_start" readonly="state != 'draft'"/>
+                    <field name="billing_period_end" readonly="state != 'draft'"/>
                 </xpath>
             </field>
         </record>
