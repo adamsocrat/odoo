@@ -125,13 +125,15 @@
                         <div t-if="o and o.billing_period_start and o.billing_period_end">
                             <span>Für die Rechnungsperiode von</span>
                             <span t-field="o.billing_period_start"
-                                  t-options='{"widget": "date","format": "dd.MM.yyyy"}'/>
-                            00:01
+                                  t-options='{"widget": "date","tz_name": "Europe/Berlin","format": "dd.MM.yyyy"}'/>
+                            <span t-field="o.billing_period_start"
+                                  t-options='{"widget": "datetime","tz_name": "Europe/Berlin","format": "HH:mm"}'/>
                             Uhr
                             bis
                             <span t-field="o.billing_period_end"
-                                  t-options='{"widget": "date","format": "dd.MM.yyyy"}'/>
-                            23:59
+                                  t-options='{"widget": "date","tz_name": "Europe/Berlin","format": "dd.MM.yyyy"}'/>
+                            <span t-field="o.billing_period_start"
+                                  t-options='{"widget": "datetime","tz_name": "Europe/Berlin","format": "HH:mm"}'/>
                             Uhr.
                         </div>
                     </div>
