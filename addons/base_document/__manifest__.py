@@ -5,7 +5,7 @@
     'category': 'Base',
     'version': '17.0.0.5',
     'depends': [
-        'l10n_din5008'
+        'l10n_din5008',
         'mail',
     ],
     'data': [
