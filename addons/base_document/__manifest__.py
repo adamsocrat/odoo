@@ -3,10 +3,14 @@
     'summary': 'This module adds additional documents for external reports and manipulates email templates',
     'author': 'ycs',
     'category': 'Base',
-    'version': '17.0.0.5',
+    'version': '17.0.1.5',
     'depends': [
         'l10n_din5008',
         'mail',
+        'web',
+        'auth_signup',
+        'account',
+        'base',
     ],
     'data': [
         'views/report_templates.xml',
@@ -15,11 +19,6 @@
         'data/report_layout.xml',
         'views/webclient_templates_override.xml',
     ],
-    # 'assets': {
-    #     'web.report_assets_common': [
-    #         'base_document/static/src/**/*',
-    #     ],
-    # },
     'installable': True,
     'application': False,
     'auto_install': True,
