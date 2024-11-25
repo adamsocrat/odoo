@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from zlib import error as zlib_error
-try:
-    from PyPDF2.errors import PdfStreamError, PdfReadError
-except ImportError:
-    from PyPDF2.utils import PdfStreamError, PdfReadError
 
 from odoo import api, models, _
 from odoo.exceptions import UserError
 from odoo.tools import pdf
+from odoo.tools.pdf import PdfReadError, PdfStreamError
 
 
 class IrActionsReport(models.Model):
@@ -75,3 +72,9 @@ class IrActionsReport(models.Model):
             master_report = self.env.ref(f"account.{master_xmlid}", raise_if_not_found=False)
             if master_report and master_report in self:
                 raise UserError(_("You cannot delete this report (%s), it is used by the accounting PDF generation engine.", master_report.name))
+
+    def _get_rendering_context(self, report, docids, data):
+        data = super()._get_rendering_context(report, docids, data)
+        if self.env.context.get('proforma_invoice'):
+            data['proforma'] = True
+        return data

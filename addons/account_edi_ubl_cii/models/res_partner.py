@@ -119,13 +119,23 @@ class ResPartner(models.Model):
             ('9949', "9949 - Slovenia VAT number"),
             ('9950', "9950 - Slovakia VAT number"),
             ('9951', "9951 - San Marino VAT number"),
-            ('9952', "9952 - Turkey VAT number"),
+            ('9952', "9952 - Türkiye VAT number"),
             ('9953', "9953 - Holy See (Vatican City State) VAT number"),
             ('9955', "9955 - Swedish VAT number"),
             ('9957', "9957 - French VAT number"),
             ('9959', "9959 - Employer Identification Number (EIN, USA)"),
         ]
     )
+
+    @api.constrains('peppol_eas')
+    def _check_peppol_eas(self):
+        for partner in self:
+            if partner.peppol_eas in ('0037', '0212', '0213', '0215'):
+                raise ValidationError(_("Peppol EAS codes 0037, 0212, 0213, 0215 are deprecated. Please use 0216 instead."))
+            elif partner.peppol_eas == '9955':
+                raise ValidationError(_("Peppol EAS code 9955 is deprecated. Please use 0007 instead."))
+            elif partner.peppol_eas == '9901':
+                raise ValidationError(_("Peppol EAS code 9901 is deprecated. Please use a different Danish EAS code instead."))
 
     @api.constrains('peppol_endpoint')
     def _check_peppol_fields(self):
@@ -204,6 +214,10 @@ class ResPartner(models.Model):
             return _("The Peppol endpoint is not valid. The expected format is: 0239843188")
         if eas == '0009' and not siret.is_valid(endpoint):
             return _("The Peppol endpoint is not valid. The expected format is: 73282932000074")
+        if eas == '0007' and not re.match(r"^\d{10}$", endpoint):
+            return _("The Peppol endpoint is not valid. "
+                     "It should contain exactly 10 digits (Company Registry number)."
+                     "The expected format is: 1234567890")
 
     def _get_edi_builder(self):
         self.ensure_one()
