@@ -657,11 +657,12 @@ class AccountMoveLine(models.Model):
                     from_currency=line.company_currency_id,
                     to_currency=line.currency_id,
                     company=line.company_id,
-                    date=line._get_rate_date(),
+                    date=line.move_id.invoice_date or line.move_id.date or fields.Date.context_today(line),
                 )
             else:
                 line.currency_rate = 1
 
+    # TODO: remove in master
     def _get_rate_date(self):
         self.ensure_one()
         return self.move_id.invoice_date or self.move_id.date or fields.Date.context_today(self)
@@ -2512,7 +2513,7 @@ class AccountMoveLine(models.Model):
                 # If we are fully reversing the entry, no need to fix anything since the journal entry
                 # is exactly the mirror of the source journal entry.
                 caba_lines_to_reconcile = None
-                if is_cash_basis_needed(involved_amls) and not self._context.get('move_reverse_cancel'):
+                if is_cash_basis_needed(involved_amls) and not self._context.get('move_reverse_cancel') and not self._context.get('no_cash_basis'):
                     caba_lines_to_reconcile = involved_amls._add_exchange_difference_cash_basis_vals(exchange_diff_values)
 
                 # Prepare the exchange difference.

@@ -41,7 +41,7 @@ def _get_notification_message(proxy_state):
 # MOCKED FUNCTIONS
 # -------------------------------------------------------------------------
 
-def _mock_make_request(func, self, *args, **kwargs):
+def _mock_call_peppol_proxy(func, self, *args, **kwargs):
 
     def _mock_get_all_documents(user, args, kwargs):
         if not user.env['account.move'].search_count([
@@ -81,6 +81,8 @@ def _mock_make_request(func, self, *args, **kwargs):
         'get_document': _mock_get_document,
         'participant_status': lambda _user, _args, _kwargs: {'peppol_state': 'receiver'},
         'send_document': _mock_send_document,
+        'add_services': lambda _user, _args, _kwargs: {},
+        'remove_services': lambda _user, _args, _kwargs: {},
     }[endpoint](self, args, kwargs)
 
 
@@ -184,7 +186,7 @@ def _mock_check_company_on_peppol(func, self, *args, **kwargs):
 
 
 _demo_behaviour = {
-    '_make_request': _mock_make_request,
+    '_call_peppol_proxy': _mock_call_peppol_proxy,
     'button_account_peppol_check_partner_endpoint': _mock_button_verify_partner_endpoint,
     '_get_peppol_verification_state': _mock_get_peppol_verification_state,
     '_peppol_migrate_registration': _mock_migrate_participant,
@@ -208,8 +210,6 @@ def handle_demo(func, self, *args, **kwargs):
     First handle the decision: "Are we in demo mode?", and conditionally decide which function to
     execute.
     """
-    demo_mode = self.env.company._get_peppol_edi_mode() == 'demo'
-
-    if not demo_mode or modules.module.current_test:
-        return func(self, *args, **kwargs)
-    return _demo_behaviour[func.__name__](func, self, *args, **kwargs)
+    if self.env.company._get_peppol_edi_mode() == 'demo':
+        return _demo_behaviour[func.__name__](func, self, *args, **kwargs)
+    return func(self, *args, **kwargs)

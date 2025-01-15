@@ -3454,8 +3454,11 @@ class MailThread(models.AbstractModel):
         """
         lang_to_recipients = {}
         for data in recipients_data:
+            # filter active lang
+            if lang_code := data.get('lang'):
+                lang_code = bool(self.env['res.lang']._lang_get(lang_code)) and lang_code
             lang_to_recipients.setdefault(
-                data.get('lang') or force_email_lang or self.env.lang,
+                lang_code or force_email_lang or self.env.lang,
                 [],
             ).append(data)
 
@@ -3816,7 +3819,7 @@ class MailThread(models.AbstractModel):
                 }
             }
         }
-        payload['options']['body'] = html2plaintext(body)
+        payload['options']['body'] = html2plaintext(body, include_references=False)
         payload['options']['body'] += self._generate_tracking_message(message)
 
         return payload
@@ -4595,7 +4598,7 @@ class MailThread(models.AbstractModel):
             "attachment_ids": Store.many(message.attachment_ids.sorted("id")),
             "body": message.body,
             "pinned_at": message.pinned_at,
-            "recipients": Store.many(message.partner_ids, fields=["name", "write_date"]),
+            "recipients": Store.many(message.partner_ids, fields=["avatar_128", "name"]),
             "write_date": message.write_date,
         }
         if body is not None:
