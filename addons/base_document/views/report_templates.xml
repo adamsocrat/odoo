@@ -332,9 +332,6 @@
                                                         <t t-esc="abs(line.quantity)"/>
                                                         <t t-if="line.name == 'Arbeitspreis'">kWh</t>
                                                     </span>
-                                                    <span t-field="line.product_uom_id" groups="uom.group_uom">
-                                                        units
-                                                    </span>
                                                 </td>
 
                                                 <td name="td_price_unit"
