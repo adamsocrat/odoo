@@ -341,6 +341,7 @@
                                                            t-esc="line.price_unit * -1"/>
                                                         <t t-else="" t-esc="line.price_unit"/>
                                                         <t t-if="line.name == 'Arbeitspreis'">cents/kWh</t>
+                                                        <t t-else="">€</t>
                                                     </span>
                                                 </td>
                                                 <td name="td_discount" t-if="display_discount"
