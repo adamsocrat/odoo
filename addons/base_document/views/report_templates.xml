@@ -294,33 +294,33 @@
                                             <t t-if="line.display_type == 'product'"
                                                name="account_invoice_line_accountable">
                                                 <td name="account_invoice_line_name">
-                                                    <strong t-if="line.name"
-                                                            t-field="line.name"
+                                                    <strong t-if="line.product_id.name"
+                                                            t-field="line.product_id.name"
                                                             t-options="{'widget': 'text', }">
                                                     </strong>
-                                                    <t t-if="line.name == 'Arbeitspreis'">
+                                                    <t t-if="line.product_id.default_code == 'fixed_price'">
                                                         <span
                                                             style="line-height: 1.5">(abgerechnet im
                                                             Liefervertrag)
                                                         </span>
                                                     </t>
-                                                    <t t-if="line.name == 'Grundpreis Liefervertrag'">
+                                                    <t t-if="line.product_id.default_code == 'grundpreis_liefer_vertrag'">
                                                         <span
                                                             style="line-height: 1.5">(abgerechnet im
                                                             Liefervertrag)
                                                         </span>
                                                     </t>
-<!--                                                    <t t-if="line.name == 'Ersparnisse durch Eigenverbrauch'">-->
+<!--                                                    <t t-if="account_invoice_line_name == 'Ersparnisse durch Eigenverbrauch'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">aus Börsenpreistarif-->
 <!--                                                        </span>-->
 <!--                                                    </t>-->
-<!--                                                    <t t-if="line.name == 'Grundpreis'">-->
+<!--                                                    <t t-if="account_invoice_line_name == 'Grundpreis'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">aus anteiliger Erzeugung-->
 <!--                                                        </span>-->
 <!--                                                    </t>-->
-<!--                                                    <t t-if="line.name == 'Grundpreis Energierendite-Vertrag'">-->
+<!--                                                    <t t-if="account_invoice_line_name == 'Grundpreis Energierendite-Vertrag'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">Betrieb und Vermarktung-->
 <!--                                                        </span>-->
@@ -330,7 +330,7 @@
                                                 <td name="td_quantity" class="text-end custom_td">
                                                     <span class="text-nowrap">
                                                         <t t-esc="abs(line.quantity)"/>
-                                                        <t t-if="line.name == 'Arbeitspreis'">kWh</t>
+                                                        <t t-if="line.product_id.default_code == 'fixed_price'">kWh</t>
                                                     </span>
                                                 </td>
 
@@ -340,7 +340,7 @@
                                                         <t t-if="o.move_type in ('in_refund', 'in_invoice', 'out_refund')"
                                                            t-esc="line.price_unit * -1"/>
                                                         <t t-else="" t-esc="line.price_unit"/>
-                                                        <t t-if="line.name == 'Arbeitspreis'">cents/kWh</t>
+                                                        <t t-if="line.product_id.name == 'fixed_price'">cents/kWh</t>
                                                         <t t-else="">€</t>
                                                     </span>
                                                 </td>
