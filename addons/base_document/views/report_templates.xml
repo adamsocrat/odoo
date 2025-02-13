@@ -310,17 +310,17 @@
                                                             Liefervertrag)
                                                         </span>
                                                     </t>
-<!--                                                    <t t-if="account_invoice_line_name == 'Ersparnisse durch Eigenverbrauch'">-->
+<!--                                                    <t t-if="line.product_id.name == 'Ersparnisse durch Eigenverbrauch'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">aus Börsenpreistarif-->
 <!--                                                        </span>-->
 <!--                                                    </t>-->
-<!--                                                    <t t-if="account_invoice_line_name == 'Grundpreis'">-->
+<!--                                                    <t t-if="line.product_id.name == 'Grundpreis'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">aus anteiliger Erzeugung-->
 <!--                                                        </span>-->
 <!--                                                    </t>-->
-<!--                                                    <t t-if="account_invoice_line_name == 'Grundpreis Energierendite-Vertrag'">-->
+<!--                                                    <t t-if="line.product_id.name == 'Grundpreis Energierendite-Vertrag'">-->
 <!--                                                        <span-->
 <!--                                                            style="line-height: 1.5">Betrieb und Vermarktung-->
 <!--                                                        </span>-->
@@ -340,7 +340,7 @@
                                                         <t t-if="o.move_type in ('in_refund', 'in_invoice', 'out_refund')"
                                                            t-esc="line.price_unit * -1"/>
                                                         <t t-else="" t-esc="line.price_unit"/>
-                                                        <t t-if="line.product_id.name == 'fixed_price'">cents/kWh</t>
+                                                        <t t-if="line.product_id.default_code == 'fixed_price'">€/kWh</t>
                                                         <t t-else="">€</t>
                                                     </span>
                                                 </td>
