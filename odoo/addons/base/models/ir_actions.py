@@ -587,7 +587,7 @@ class IrActionsServer(models.Model):
 
     update_field_id = fields.Many2one('ir.model.fields', string='Field to Update', ondelete='cascade', compute='_compute_crud_relations', store=True, readonly=False)
     update_path = fields.Char(string='Field to Update Path', help="Path to the field to update, e.g. 'partner_id.name'", default=_default_update_path)
-    update_related_model_id = fields.Many2one('ir.model', compute='_compute_crud_relations', store=True)
+    update_related_model_id = fields.Many2one('ir.model', compute='_compute_crud_relations', readonly=False, store=True)
     update_field_type = fields.Selection(related='update_field_id.ttype', readonly=True)
     update_m2m_operation = fields.Selection([
         ('add', 'Adding'),
@@ -1032,8 +1032,7 @@ class IrActionsServer(models.Model):
 
     @api.constrains('update_field_id', 'evaluation_type')
     def _raise_many2many_error(self):
-        if self.filtered(lambda line: line.update_field_id.ttype == 'many2many' and line.evaluation_type == 'reference'):
-            raise ValidationError(_('many2many fields cannot be evaluated by reference'))
+        pass  # TODO: remove in master
 
     @api.onchange('resource_ref')
     def _set_resource_ref(self):
@@ -1080,9 +1079,11 @@ class IrActionsServer(models.Model):
 
     def copy_data(self, default=None):
         default = default or {}
+        vals_list = super().copy_data(default=default)
         if not default.get('name'):
-            default['name'] = _('%s (copy)', self.name)
-        return super().copy_data(default=default)
+            for vals in vals_list:
+                vals['name'] = _('%s (copy)', vals.get('name', ''))
+        return vals_list
 
 class IrActionsTodo(models.Model):
     """

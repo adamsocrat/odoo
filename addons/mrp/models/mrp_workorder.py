@@ -231,7 +231,7 @@ class MrpWorkorder(models.Model):
         for workorder in self:
             if workorder.qty_producing != 0 and workorder.production_id.qty_producing != workorder.qty_producing:
                 workorder.production_id.qty_producing = workorder.qty_producing
-                workorder.production_id._set_qty_producing()
+                workorder.production_id._set_qty_producing(False)
 
     # Both `date_start` and `date_finished` are related fields on `leave_id`. Let's say
     # we slide a workorder on a gantt view, a single call to write is made with both
@@ -256,7 +256,8 @@ class MrpWorkorder(models.Model):
                     'date_to': wo.date_finished,
                 })
             elif wo.date_start:
-                wo.date_finished = wo._calculate_date_finished()
+                if not wo.date_finished:
+                    wo.date_finished = wo._calculate_date_finished()
                 wo.leave_id = wo.env['resource.calendar.leaves'].create({
                     'name': wo.display_name,
                     'calendar_id': wo.workcenter_id.resource_calendar_id.id,
@@ -519,8 +520,6 @@ class MrpWorkorder(models.Model):
         # Plan workorder after its predecessors
         date_start = max(self.production_id.date_start, datetime.now())
         for workorder in self.blocked_by_workorder_ids:
-            if workorder.state in ['done', 'cancel']:
-                continue
             workorder._plan_workorder(replan)
             if workorder.date_finished and workorder.date_finished > date_start:
                 date_start = workorder.date_finished

@@ -34,6 +34,7 @@ def create_automation(self, **kwargs):
             for action in actions_data
         ]
     )
+    action_ids.flush_recordset()
     automation_id.write({'action_server_ids': [Command.set(action_ids.ids)]})
     self.addCleanup(automation_id.unlink)
     return automation_id
@@ -1092,63 +1093,6 @@ class TestCompute(common.TransactionCase):
         ])
         self.assertEqual(automation.on_change_field_ids.ids, [])
 
-    def test_automation_form_view_on_change_filter_domain_2(self):
-        a_lead_tag = self.env['test_base_automation.tag'].create({'name': '*AWESOME*'})
-        automation = self.env['base.automation'].create({
-            'name': 'Test Automation',
-            'model_id': self.env.ref('test_base_automation.model_base_automation_lead_test').id,
-            'trigger': 'on_tag_set',
-            'trg_field_ref': a_lead_tag.id,
-        })
-        self.assertEqual(automation.filter_pre_domain, repr([('tag_ids', 'not in', [a_lead_tag.id])]))
-        self.assertEqual(automation.filter_domain, repr([('tag_ids', 'in', [a_lead_tag.id])]))
-        self.assertEqual(automation.trigger_field_ids.ids, [
-            self.env.ref('test_base_automation.field_base_automation_lead_test__tag_ids').id
-        ])
-        self.assertEqual(automation.on_change_field_ids.ids, [])
-
-        # Change the trigger to "On UI change" will erase the domains and the trigger fields
-        automation_form = Form(automation, view='base_automation.view_base_automation_form')
-        automation_form.trigger = 'on_change'
-        automation = automation_form.save()
-        self.assertEqual(automation.filter_pre_domain, False)
-        self.assertEqual(automation.filter_domain, False)
-        self.assertEqual(automation.trigger_field_ids.ids, [])
-        self.assertEqual(automation.on_change_field_ids.ids, [])
-
-        # Change the domain will append each used field to the onchange fields
-        automation_form.filter_domain = repr([('priority', '=', True), ('employee', '=', False)])
-        automation = automation_form.save()
-        self.assertEqual(automation.filter_pre_domain, False)
-        self.assertEqual(automation.filter_domain, repr([('priority', '=', True), ('employee', '=', False)]))
-        self.assertEqual(automation.trigger_field_ids.ids, [])
-        self.assertSetEqual(set(automation.on_change_field_ids.ids), {
-            self.env.ref('test_base_automation.field_base_automation_lead_test__priority').id,
-            self.env.ref('test_base_automation.field_base_automation_lead_test__employee').id,
-        })
-
-        # Change the onchange fields will not change the domain
-        automation_form.on_change_field_ids.set(
-            self.env.ref('test_base_automation.field_base_automation_lead_test__tag_ids')
-        )
-        automation = automation_form.save()
-        self.assertEqual(automation.filter_pre_domain, False)
-        self.assertEqual(automation.filter_domain, repr([('priority', '=', True), ('employee', '=', False)]))
-        self.assertEqual(automation.trigger_field_ids.ids, [])
-        self.assertEqual(automation.on_change_field_ids.ids, [
-            self.env.ref('test_base_automation.field_base_automation_lead_test__tag_ids').id
-        ])
-
-        # Erase the domain will not change the onchange fields
-        automation_form.filter_domain = False
-        automation = automation_form.save()
-        self.assertEqual(automation.filter_pre_domain, False)
-        self.assertEqual(automation.filter_domain, False)
-        self.assertEqual(automation.trigger_field_ids.ids, [])
-        self.assertEqual(automation.on_change_field_ids.ids, [
-            self.env.ref('test_base_automation.field_base_automation_lead_test__tag_ids').id
-        ])
-
     def test_automation_form_view_time_triggers(self):
         # Starting from a "On save" automation
         on_save_automation = self.env['base.automation'].create({
@@ -1197,6 +1141,28 @@ class TestCompute(common.TransactionCase):
         self.assertEqual(automation_form.trigger_field_ids.ids, [])
         automation = automation_form.save()
         self.assertEqual(automation.filter_pre_domain, False)
+
+    def test_automation_form_view_with_default_values_in_context(self):
+        # Use case where default model, trigger and filter_domain in context
+        context = {
+            'default_name': 'Test Automation',
+            'default_model_id': self.env.ref('test_base_automation.model_base_automation_lead_test').id,
+            'default_trigger': 'on_create_or_write',
+            'default_filter_domain': repr([('state', '=', 'draft')]),
+        }
+        # Create form should be pre-filled with the default values
+        automation = self.env['base.automation'].with_context(context)
+        default_trigger_field_ids = [self.env.ref('test_base_automation.field_base_automation_lead_test__state').id]
+        automation_form = Form(automation, view='base_automation.view_base_automation_form')
+        self.assertEqual(automation_form.name, context.get('default_name'))
+        self.assertEqual(automation_form.model_id.id, context.get('default_model_id'))
+        self.assertEqual(automation_form.trigger, context.get('default_trigger'))
+        self.assertEqual(automation_form.trigger_field_ids.ids, default_trigger_field_ids,
+            'trigger_field_ids should match the fields in the default filter domain.')
+
+        automation_form.trigger = 'on_stage_set'
+        self.assertNotEqual(automation_form.trigger_field_ids.ids, default_trigger_field_ids,
+            'When user changes trigger, the trigger_field_ids field should be updated')
 
     def test_inversion(self):
         """ If a stored field B depends on A, an update to the trigger for A
@@ -1416,6 +1382,18 @@ class TestCompute(common.TransactionCase):
         # check that the automation has been run once
         partner_count = self.env['res.partner'].search_count([('name', '=', 'Test Partner Automation')])
         self.assertEqual(partner_count, 1, "Only one partner should have been created")
+
+    def test_00_form_save_update_related_model_id(self):
+        with Form(self.env['ir.actions.server'], view="base.view_server_action_form") as f:
+            f.name = "Test Action"
+            f.model_id = self.env["ir.model"]._get("res.partner")
+            f.state = "object_write"
+            f.update_path = "user_id"
+            f.evaluation_type = "value"
+            f.resource_ref = "res.users,2"
+
+        res_users_model = self.env["ir.model"]._get("res.users")
+        self.assertEqual(f.update_related_model_id, res_users_model)
 
 
 @common.tagged("post_install", "-at_install")

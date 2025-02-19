@@ -24,50 +24,6 @@ patch(PosStore.prototype, {
             },
         ];
     },
-    async recordSynchronisation(data) {
-        await super.recordSynchronisation(...arguments);
-        if (data.records["pos.order"]?.length > 0) {
-            // Verify if there is only 1 order by table.
-            const orderByTableId = this.models["pos.order"].reduce((acc, order) => {
-                // Floating order doesn't need to be verified.
-                if (!order.finalized && order.table_id?.id) {
-                    acc[order.table_id.id] = acc[order.table_id.id] || [];
-                    acc[order.table_id.id].push(order);
-                }
-                return acc;
-            }, {});
-
-            for (const orders of Object.values(orderByTableId)) {
-                if (orders.length > 1) {
-                    // The only way to get here is if there is several waiters on the same table.
-                    // In this case we take orderline of the local order and we add it to the synced order.
-                    const syncedOrder = orders.find((order) => typeof order.id === "number");
-                    const localOrders = orders.find((order) => typeof order.id !== "number");
-
-                    let watcher = 0;
-                    while (localOrders.lines.length > 0) {
-                        if (watcher > 1000) {
-                            break;
-                        }
-
-                        const line = localOrders.lines.pop();
-                        line.update({ order_id: syncedOrder });
-                        line.setDirty();
-                        watcher++;
-                    }
-
-                    // Remove local orders from the local database.
-                    if (this.get_order()?.id === localOrders.id) {
-                        this.set_order(syncedOrder);
-                        this.addPendingOrder([syncedOrder.id]);
-                    }
-
-                    localOrders.delete();
-                }
-            }
-            this.computeTableCount();
-        }
-    },
     get firstScreen() {
         const screen = super.firstScreen;
 
@@ -88,9 +44,9 @@ patch(PosStore.prototype, {
         }
         return orderIsDeleted;
     },
-    async closingSessionNotification(data) {
+    async closingSessionNotification() {
         await super.closingSessionNotification(...arguments);
-        this.computeTableCount(data);
+        this.computeTableCount();
     },
     computeTableCount() {
         const tables = this.models["restaurant.table"].getAll();
@@ -233,6 +189,7 @@ patch(PosStore.prototype, {
         return super.getDefaultSearchDetails();
     },
     async setTable(table, orderUuid = null) {
+        this.deviceSync.readDataFromServer();
         this.selectedTable = table;
 
         const tableOrders = table.orders;
@@ -294,7 +251,7 @@ patch(PosStore.prototype, {
         const order = this.get_order();
         if (order && !order.isBooked) {
             this.removeOrder(order);
-        } else if (order) {
+        } else if (order && this.previousScreen !== "ReceiptScreen") {
             if (!this.orderToTransferUuid) {
                 this.syncAllOrders({ orders: [order] });
             } else {
@@ -318,6 +275,7 @@ patch(PosStore.prototype, {
     },
     async transferOrder(orderUuid, destinationTable) {
         const order = this.models["pos.order"].getBy("uuid", orderUuid);
+        const destinationOrder = this.getActiveOrdersOnTable(destinationTable)[0];
         const originalTable = order.table_id;
         this.loadingOrderState = false;
         this.alert.dismiss();
@@ -331,8 +289,6 @@ patch(PosStore.prototype, {
             this.set_order(order);
             this.addPendingOrder([order.id]);
         } else {
-            const destinationOrder = this.getActiveOrdersOnTable(destinationTable)[0];
-            const linesToUpdate = [];
             for (const orphanLine of order.lines) {
                 const adoptingLine = destinationOrder.lines.find((l) =>
                     l.can_be_merged_with(orphanLine)
@@ -340,18 +296,19 @@ patch(PosStore.prototype, {
                 if (adoptingLine) {
                     adoptingLine.merge(orphanLine);
                 } else {
-                    linesToUpdate.push(orphanLine);
+                    const serialized = orphanLine.serialize();
+                    serialized.order_id = destinationOrder.id;
+                    delete serialized.uuid;
+                    delete serialized.id;
+                    this.models["pos.order.line"].create(serialized, false, true);
                 }
             }
-            linesToUpdate.forEach((orderline) => {
-                orderline.update({ order_id: destinationOrder });
-            });
+
             this.set_order(destinationOrder);
-            if (destinationOrder?.id) {
-                this.addPendingOrder([destinationOrder.id]);
-            }
             await this.deleteOrders([order]);
         }
+
+        await this.syncAllOrders({ orders: [destinationOrder || order] });
         await this.setTable(destinationTable);
     },
     getCustomerCount(tableId) {

@@ -24,6 +24,7 @@ import { PosOrderLineRefund } from "@point_of_sale/app/models/pos_order_line_ref
 import { fuzzyLookup } from "@web/core/utils/search";
 import { parseUTCString } from "@point_of_sale/utils";
 import { useTrackedAsync } from "@point_of_sale/app/utils/hooks";
+import { ConnectionLostError } from "@web/core/network/rpc";
 
 const NBR_BY_PAGE = 30;
 
@@ -70,17 +71,23 @@ export class TicketScreen extends Component {
             nbrPage: 1,
             filter: null,
             search: this.pos.getDefaultSearchDetails(),
-            selectedOrder: this.pos.get_order() || null,
+            selectedOrderUuid: this.pos.get_order()?.uuid || null,
             selectedOrderlineIds: {},
         });
         Object.assign(this.state, this.props.stateOverride || {});
 
         onMounted(this.onMounted);
         onWillStart(async () => {
-            if (this.pos._shouldLoadOrders()) {
+            if (this.pos._shouldLoadOrders() && !this.pos.loadingOrderState) {
                 try {
                     this.pos.setLoadingOrderState(true);
                     await this.pos.getServerOrders();
+                } catch (error) {
+                    if (error instanceof ConnectionLostError) {
+                        Promise.reject(error);
+                        return error;
+                    }
+                    throw error;
                 } finally {
                     this.pos.setLoadingOrderState(false);
                 }
@@ -122,11 +129,11 @@ export class TicketScreen extends Component {
         }
     }
     onClickOrder(clickedOrder) {
-        this.state.selectedOrder = clickedOrder;
+        this.setSelectedOrder(clickedOrder);
         this.numberBuffer.reset();
         if ((!clickedOrder || clickedOrder.uiState.locked) && !this.getSelectedOrderlineId()) {
             // Automatically select the first orderline of the selected order.
-            const firstLine = this.state.selectedOrder.get_orderlines()[0];
+            const firstLine = this.getSelectedOrder().get_orderlines()[0];
             if (firstLine) {
                 this.state.selectedOrderlineIds[clickedOrder.id] = firstLine.id;
             }
@@ -146,10 +153,10 @@ export class TicketScreen extends Component {
     }
     async onInvoiceOrder(orderId) {
         const order = this.pos.models["pos.order"].get(orderId);
-        this.state.selectedOrder = order;
+        this.setSelectedOrder(order);
     }
     onClickOrderline(orderline) {
-        if (this.state.selectedOrder.uiState.locked) {
+        if (this.getSelectedOrder()?.uiState.locked) {
             const order = this.getSelectedOrder();
             this.state.selectedOrderlineIds[order.id] = orderline.id;
             this.numberBuffer.reset();
@@ -312,18 +319,21 @@ export class TicketScreen extends Component {
             destinationOrder.set_partner(partner);
         }
     }
+    setSelectedOrder(order) {
+        this.state.selectedOrderUuid = order?.uuid || null;
+    }
     getSelectedOrder() {
-        return this.state.selectedOrder;
+        return this.pos.models["pos.order"].getBy("uuid", this.state.selectedOrderUuid) || null;
     }
     getSelectedOrderlineId() {
-        if (this.state.selectedOrder) {
-            return this.state.selectedOrderlineIds[this.state.selectedOrder.id];
+        if (this.getSelectedOrder()) {
+            return this.state.selectedOrderlineIds[this.getSelectedOrder().id];
         }
     }
     get isOrderSynced() {
         return (
-            this.state.selectedOrder?.uiState.locked &&
-            (this.state.selectedOrder.get_screen_data().name === "" ||
+            this.getSelectedOrder()?.uiState.locked &&
+            (this.getSelectedOrder().get_screen_data().name === "" ||
                 this.state.filter === "SYNCED")
         );
     }
@@ -420,7 +430,7 @@ export class TicketScreen extends Component {
         const orders = this.pos.models["pos.order"].filter((o) => !o.finalized);
         return (
             (orders.length === 1 && orders[0].lines.length === 0) ||
-            (this.ui.isSmall && order != this.state.selectedOrder) ||
+            (this.ui.isSmall && order != this.getSelectedOrder()) ||
             this.isDefaultOrderEmpty(order) ||
             order.finalized ||
             order.payment_ids.some(

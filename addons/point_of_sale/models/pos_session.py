@@ -103,7 +103,8 @@ class PosSession(models.Model):
             response[model]['relations'] = {}
 
         for name, params in model_fields.items():
-            if name not in response[model]['fields'] and len(response[model]['fields']) != 0:
+            fields_count = len(response[model]['fields'])
+            if (fields_count and name not in response[model]['fields']) or (params.manual and not fields_count):
                 continue
 
             if params.comodel_name:
@@ -130,7 +131,7 @@ class PosSession(models.Model):
     @api.model
     def _load_pos_data_models(self, config_id):
         return ['pos.config', 'pos.order', 'pos.order.line', 'pos.pack.operation.lot', 'pos.payment', 'pos.payment.method', 'pos.printer',
-            'pos.category', 'pos.bill', 'res.company', 'account.tax', 'account.tax.group', 'product.product', 'product.attribute', 'product.attribute.custom.value',
+                        'pos.category', 'pos.bill', 'res.company', 'account.tax', 'account.tax.group', 'product.product', 'product.attribute', 'product.attribute.custom.value',
             'product.template.attribute.line', 'product.template.attribute.value', 'product.combo', 'product.combo.item', 'product.packaging', 'res.users', 'res.partner',
             'decimal.precision', 'uom.uom', 'uom.category', 'res.country', 'res.country.state', 'res.lang', 'product.pricelist', 'product.pricelist.item', 'product.category',
             'account.cash.rounding', 'account.fiscal.position', 'account.fiscal.position.tax', 'stock.picking.type', 'res.currency', 'pos.note', 'ir.ui.view', 'product.tag', 'ir.module.module']
@@ -368,8 +369,6 @@ class PosSession(models.Model):
         # we only open sessions that haven't already been opened
         for session in self.filtered(lambda session: session.state == 'opening_control'):
             values = {}
-            if not session.start_at:
-                values['start_at'] = fields.Datetime.now()
             if session.config_id.cash_control and not session.rescue:
                 last_session = self.search([('config_id', '=', session.config_id.id), ('id', '!=', session.id)], limit=1)
                 session.cash_register_balance_start = last_session.cash_register_balance_end_real  # defaults to 0 if lastsession is empty
@@ -1080,7 +1079,7 @@ class PosSession(models.Model):
         outstanding_account = payment_method.outstanding_account_id
         destination_account = self._get_receivable_account(payment_method)
 
-        account_payment = self.env['account.payment'].create({
+        account_payment = self.env['account.payment'].with_context(pos_payment=True).create({
             'amount': abs(amounts['amount']),
             'journal_id': payment_method.journal_id.id,
             'force_outstanding_account_id': outstanding_account.id,
@@ -1091,10 +1090,17 @@ class PosSession(models.Model):
             'company_id': self.company_id.id,
         })
 
+        # In community the outstanding account is computed on the creation of account.payment records
+        accounting_installed = self.env['account.move']._get_invoice_in_payment_state() == 'in_payment'
+        if not account_payment.outstanding_account_id and accounting_installed:
+            account_payment.outstanding_account_id = account_payment._get_outstanding_account(account_payment.payment_type)
+
         if float_compare(amounts['amount'], 0, precision_rounding=self.currency_id.rounding) < 0:
             # revert the accounts because account.payment doesn't accept negative amount.
-            account_payment.outstanding_account_id = account_payment.destination_account_id
-            account_payment.destination_account_id = account_payment.outstanding_account_id
+            account_payment.write({
+                'outstanding_account_id': account_payment.destination_account_id,
+                'destination_account_id': account_payment.outstanding_account_id,
+            })
 
         account_payment.action_post()
 
@@ -1657,6 +1663,7 @@ class PosSession(models.Model):
 
     def set_opening_control(self, cashbox_value: int, notes: str):
         self.state = 'opened'
+        self.start_at = fields.Datetime.now()
         if not self.rescue:
             self.name = self.env['ir.sequence'].with_context(company_id=self.config_id.company_id.id).next_by_code('pos.session')
 
@@ -1664,8 +1671,8 @@ class PosSession(models.Model):
         if cash_payment_method_ids:
             self.opening_notes = notes
             difference = cashbox_value - self.cash_register_balance_start
-            self.cash_register_balance_start = cashbox_value
             self._post_cash_details_message('Opening cash', self.cash_register_balance_start, difference, notes)
+            self.cash_register_balance_start = cashbox_value
         elif notes:
             message = _('Opening control message: ')
             message += notes
@@ -1898,5 +1905,15 @@ class ProcurementGroup(models.Model):
     def _run_scheduler_tasks(self, use_new_cursor=False, company_id=False):
         super(ProcurementGroup, self)._run_scheduler_tasks(use_new_cursor=use_new_cursor, company_id=company_id)
         self.env['pos.session']._alert_old_session()
+        if 'scheduler_task_done' in self._context:
+            task_done = self._context.get('scheduler_task_done', {'task_done': 0})['task_done'] + 1
+            self._context['scheduler_task_done']['task_done'] = task_done
+        else:
+            task_done = self._get_scheduler_tasks_to_do()
         if use_new_cursor:
+            self.env['ir.cron']._notify_progress(done=task_done, remaining=self._get_scheduler_tasks_to_do() - task_done)
             self.env.cr.commit()
+
+    @api.model
+    def _get_scheduler_tasks_to_do(self):
+        return super()._get_scheduler_tasks_to_do() + 1

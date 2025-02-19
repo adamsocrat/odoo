@@ -1207,12 +1207,20 @@ const removeStyle = (node, styleName, item) => {
 };
 const getOrCreateSpan = (node, ancestors) => {
     const span = ancestors.find((element) => element.tagName === 'SPAN' && element.isConnected);
+    const lastInlineAncestor = ancestors.findLast((element) => !isBlock(element) && element.isConnected);
     if (span) {
         return span;
     } else {
         const span = document.createElement('span');
-        node.after(span);
-        span.append(node);
+        // Apply font span above current inline top ancestor so that 
+        // the font style applies to the other style tags as well.
+        if (lastInlineAncestor) {
+            lastInlineAncestor.after(span);
+            span.append(lastInlineAncestor);
+        } else {
+            node.after(span);
+            span.append(node);
+        }
         return span;
     }
 }
@@ -1672,7 +1680,7 @@ export function isUnbreakable(node) {
                 node.getAttribute('t-out') ||
                 node.getAttribute('t-raw')) ||
                 node.getAttribute('t-field')) ||
-        node.matches(".oe_unbreakable, a.btn, a[role='tab'], a[role='button']")
+        node.matches(".oe_unbreakable, a.btn, a[role='tab'], a[role='button'], li.nav-item")
     );
 }
 
@@ -2212,7 +2220,7 @@ export function isColorGradient(value) {
  */
 export function getFontSizeDisplayValue(sel, getCSSVariableValue, convertNumericToUnit) {
     const tagNameRelatedToFontSize = ["h1", "h2", "h3", "h4", "h5", "h6"];
-    const styleClassesRelatedToFontSize = ["display-1", "display-2", "display-3", "display-4"];
+    const styleClassesRelatedToFontSize = ["display-1", "display-2", "display-3", "display-4", "lead"];
     const closestStartContainerEl = closestElement(sel.getRangeAt(0).startContainer);
     const closestFontSizedEl = closestStartContainerEl.closest(`
         [style*='font-size'],
@@ -2247,11 +2255,7 @@ export function getFontSizeDisplayValue(sel, getCSSVariableValue, convertNumeric
         }
         remValue = parseFloat(getCSSVariableValue(`${fsName}-font-size`));
     }
-    // It's default font size (no font size class / style).
-    if (remValue === undefined) {
-        remValue = parseFloat(getCSSVariableValue("font-size-base"));
-    }
-    const pxValue = convertNumericToUnit(remValue, "rem", "px");
+    const pxValue = remValue && convertNumericToUnit(remValue, "rem", "px");
     return pxValue || parseFloat(getComputedStyle(closestStartContainerEl).fontSize);
 }
 
@@ -2444,7 +2448,7 @@ export function fillEmpty(el) {
         blockEl.appendChild(br);
         fillers.br = br;
     }
-    if (!isTangible(el) && !el.hasAttribute("data-oe-zws-empty-inline") && !el.hasChildNodes()) {
+    if (!isTangible(el) && !el.hasAttribute("data-oe-zws-empty-inline") && isEmptyBlock(el)) {
         // As soon as there is actual content in the node, the zero-width space
         // is removed by the sanitize function.
         const zws = document.createTextNode('\u200B');
@@ -3311,5 +3315,12 @@ export function isMacOS() {
 export function cleanZWS(node) {
     [node, ...descendants(node)]
         .filter(node => node.nodeType === Node.TEXT_NODE && node.nodeValue.includes('\u200B'))
-        .forEach(node => node.nodeValue = node.nodeValue.replace(/\u200B/g, ''));
+        .forEach((node) => {
+            node.nodeValue = node.nodeValue.replace(/\u200B/g, "");
+
+            // If a node becomes empty after removing ZWS, remove it.
+            if (node.nodeValue === "") {
+                node.remove();
+            }
+        });
 }

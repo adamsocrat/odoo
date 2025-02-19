@@ -71,6 +71,17 @@ class ProductProduct(models.Model):
             order='sequence,default_code,name',
             load=False
         )
+        combo_products = self.browse((p['id'] for p in products if p["type"]=="combo"))
+        combo_products_choice = self.with_context(display_default_code=False).search_read(
+            [("id", 'in', combo_products.combo_ids.combo_item_ids.product_id.ids), ("id", "not in", [p['id'] for p in products])],
+            fields,
+            limit=config.get_limited_product_count(),
+            order='sequence,default_code,name',
+            load=False
+        )
+        products.extend(combo_products_choice)
+        for product in products:
+            product['image_128'] = bool(product['image_128'])
 
         data['pos.config']['data'][0]['_product_default_values'] = \
             self.env['account.tax']._eval_taxes_computation_prepare_product_default_values(product_fields)

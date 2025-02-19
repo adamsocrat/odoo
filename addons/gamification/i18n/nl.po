@@ -4,8 +4,8 @@
 # 
 # Translators:
 # Wil Odoo, 2024
-# Manon Rondou, 2024
 # Martin Trigaux, 2024
+# Manon Rondou, 2025
 # Erwin van der Ploeg <erwin@odooexperts.nl>, 2025
 # 
 msgid ""
@@ -305,7 +305,7 @@ msgstr ""
 "                <tr><td valign=\"top\" style=\"font-size: 14px;\">\n"
 "                    <div>\n"
 "                        Gefeliciteerd <t t-out=\"object.user_id.name or ''\"/>!<br/>\n"
-"                        Je hebt net badge <strong t-out=\"object.badge_id.name or ''\"/> ontvangen!<br/>\n"
+"                        Je hebt net de badge <strong t-out=\"object.badge_id.name or ''\"/> ontvangen!<br/>\n"
 "                        <table t-if=\"not is_html_empty(object.badge_id.description)\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"width: 560px; margin-top: 5px;\">\n"
 "                            <tbody><tr>\n"
 "                                <td valign=\"center\">\n"
@@ -362,7 +362,7 @@ msgstr ""
 "<tr><td align=\"center\" style=\"min-width: 590px;\">\n"
 "    <table width=\"590\" border=\"0\" cellpadding=\"0\" style=\"min-width: 590px; background-color: #F1F1F1; color: #454748; padding: 8px; border-collapse:separate;\">\n"
 "      <tr><td style=\"text-align: center; font-size: 14px;\">\n"
-"        Aangedreven door <a target=\"_blank\" href=\"https://www.odoo.com?utm_source=db&amp;utm_medium=gamification\" style=\"color: #875A7B;\">Odoo</a>\n"
+"        Powered by <a target=\"_blank\" href=\"https://www.odoo.com?utm_source=db&amp;utm_medium=gamification\" style=\"color: #875A7B;\">Odoo</a>\n"
 "      </td></tr>\n"
 "    </table>\n"
 "</td></tr>\n"
@@ -1373,7 +1373,7 @@ msgstr "Volgers"
 #: model:ir.model.fields,field_description:gamification.field_gamification_badge__message_partner_ids
 #: model:ir.model.fields,field_description:gamification.field_gamification_challenge__message_partner_ids
 msgid "Followers (Partners)"
-msgstr "Volgers (Contacten)"
+msgstr "Volgers (Partners)"
 
 #. module: gamification
 #: model:ir.model.fields,field_description:gamification.field_gamification_challenge__reward_first_id
@@ -2646,7 +2646,7 @@ msgid ""
 "\n"
 "%(error_message)s"
 msgstr ""
-"Het domein voor de definitie %(definition)s lijkt onjuist. Gelieve dit na te kijken.\n"
+"Het domein voor de definitie %(definition)s lijkt onjuist. Graag dit na te kijken.\n"
 "\n"
 "%(error_message)s"
 
