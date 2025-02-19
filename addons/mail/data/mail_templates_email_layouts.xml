@@ -82,16 +82,6 @@
         <a t-if="company.website" t-att-href="'%s' % company.website" style="text-decoration:none; color: #999999;" t-out="company.website"/>
     </p>
 </div>
-<<<<<<< HEAD
-||||||| 893b2536441
-<div style="color: #555555; font-size:11px;">
-    Powered by <a target="_blank" href="https://www.odoo.com?utm_source=db&amp;utm_medium=email"
-                  t-att-style="'color: ' + (company.email_secondary_color or '#875A7B') + ';'">Odoo</a>
-    <span id="mail_unfollow">
-        | <a href="/mail/unfollow" style="text-decoration:none; color:#555555;">Unfollow</a>
-    </span>
-</div>
-=======
 <div t-if="show_footer" style="color: #555555; font-size:11px;">
     Powered by <a target="_blank" href="https://www.odoo.com?utm_source=db&amp;utm_medium=email"
                   t-att-style="'color: ' + (company.email_secondary_color or '#875A7B') + ';'">Odoo</a>
@@ -99,7 +89,6 @@
         | <a href="/mail/unfollow" style="text-decoration:none; color:#555555;">Unfollow</a>
     </span>
 </div>
->>>>>>> 0dac4fe44c4398878b1548431ad7c5b3c80b2af8
 </div>
 </body></html>
         </template>
